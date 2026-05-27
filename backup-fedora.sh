@@ -7,8 +7,12 @@ NFS_EXPORT="/volume1/fedora_nfs"
 MOUNT_POINT="/mnt/nas-backup"
 BACKUP_USER="mtellier"
 
-export RESTIC_REPOSITORY="${MOUNT_POINT}/fedora-${BACKUP_USER}-restic"
+export RESTIC_REPOSITORY="${MOUNT_POINT}/restic-backup"
 export RESTIC_PASSWORD_FILE="/etc/restic/fedora.pass"
+
+# Service runs as root with no $HOME — give restic a persistent metadata cache
+# so each run isn't a full cold read (and to silence the cache-dir warning).
+export RESTIC_CACHE_DIR="/var/cache/restic"
 
 SOURCES=(
     "/home/${BACKUP_USER}/.ssh"
@@ -23,7 +27,7 @@ KEEP_WEEKLY=8
 KEEP_MONTHLY=12
 
 # ── Mount ─────────────────────────────────────────────────────────────────────
-mkdir -p "${MOUNT_POINT}"
+mkdir -p "${MOUNT_POINT}" "${RESTIC_CACHE_DIR}"
 
 # Unmount on exit (success or error) — repo only mounted during the backup window,
 # so a NAS reboot can never hang the OS.
