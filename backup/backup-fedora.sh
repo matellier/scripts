@@ -7,7 +7,10 @@ NFS_EXPORT="/volume1/fedora_nfs"
 MOUNT_POINT="/mnt/nas-backup"
 BACKUP_USER="mtellier"
 
-export RESTIC_REPOSITORY="${MOUNT_POINT}/restic-backup"
+# Real NAS repo (created 2026-04, holds existing history). NOTE: a prior commit
+# renamed this to .../restic-backup in the script only — the NAS repo was never
+# renamed, so that path was broken. Keep this pointed at the repo that exists.
+export RESTIC_REPOSITORY="${MOUNT_POINT}/fedora-${BACKUP_USER}-restic"
 export RESTIC_PASSWORD_FILE="/etc/restic/fedora.pass"
 
 # Service runs as root with no $HOME — give restic a persistent metadata cache

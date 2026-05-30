@@ -1,0 +1,19 @@
+[Unit]
+Description=Fedora home directory backup to NAS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Set to 1 to suspend the PC again after a successful backup (only if no graphical
+# session is actively in use). Set to 0 to leave the machine awake.
+Environment=SUSPEND_AFTER=1
+# Hold a sleep inhibitor for the duration of the backup so logind/KDE can't
+# re-suspend the machine mid-backup after the RTC wake.
+ExecStart=/usr/bin/systemd-inhibit --what=sleep --who=backup-fedora --why="Nightly NAS backup in progress" /usr/local/bin/backup-fedora.sh
+# After a successful backup, optionally return to sleep (runs after the inhibitor
+# above is released). '-' so a skipped/failed suspend never fails the unit.
+ExecStartPost=-/usr/local/bin/backup-fedora-suspend.sh
+TimeoutStartSec=2h
+StandardOutput=journal
+StandardError=journal

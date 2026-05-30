@@ -12,6 +12,10 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 install -m 755 -o root -g root "${REPO_DIR}/backup-fedora.sh" /usr/local/bin/backup-fedora.sh
 restorecon -v /usr/local/bin/backup-fedora.sh
 
+# Post-backup suspend helper (same bin_t reasoning as above).
+install -m 755 -o root -g root "${REPO_DIR}/backup-fedora-suspend.sh" /usr/local/bin/backup-fedora-suspend.sh
+restorecon -v /usr/local/bin/backup-fedora-suspend.sh
+
 # systemd units
 install -m 644 -o root -g root "${REPO_DIR}/backup-fedora.service" /etc/systemd/system/backup-fedora.service
 install -m 644 -o root -g root "${REPO_DIR}/backup-fedora.timer"   /etc/systemd/system/backup-fedora.timer

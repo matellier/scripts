@@ -1,0 +1,14 @@
+[Unit]
+Description=Nightly Fedora home backup to NAS (wakes the machine from sleep)
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+AccuracySec=1min
+# Arm the RTC to wake the PC from suspend at 02:00 (works from suspend-to-RAM,
+# not from full poweroff). Confirmed S3 'deep' is available on this hardware.
+WakeSystem=true
+# Run a missed backup at next boot if the PC was fully powered off at 02:00.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
