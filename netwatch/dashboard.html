@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetWatch — Connection Monitor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── Variables ── */
+  :root {
+    --bg:         #0a0c0f;
+    --surface:    #111318;
+    --surface2:   #181c22;
+    --border:     #1e2430;
+    --accent:     #00e5ff;
+    --accent2:    #7c4dff;
+    --green:      #00e676;
+    --yellow:     #ffea00;
+    --red:        #ff1744;
+    --orange:     #ff6d00;
+    --text:       #e2e8f0;
+    --muted:      #4a5568;
+    --mono:       'Space Mono', monospace;
+    --sans:       'DM Sans', sans-serif;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Scanline overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,229,255,.015) 2px,
+      rgba(0,229,255,.015) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(90deg, rgba(0,229,255,.04) 0%, transparent 60%);
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    letter-spacing: .12em;
+    color: var(--accent);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 10px var(--green);
+    animation: pulse 2s infinite;
+  }
+  .logo-dot.offline { background: var(--red); box-shadow: 0 0 10px var(--red); }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:.5; transform:scale(1.3); }
+  }
+
+  .header-right {
+    display: flex; align-items: center; gap: 16px;
+  }
+
+  .time-range-btns {
+    display: flex; gap: 4px;
+  }
+  .tr-btn {
+    font-family: var(--mono);
+    font-size: .68rem;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all .15s;
+    letter-spacing: .06em;
+  }
+  .tr-btn:hover, .tr-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,229,255,.06);
+  }
+
+  .speed-btn {
+    font-family: var(--mono);
+    font-size: .7rem;
+    padding: 6px 14px;
+    background: rgba(124,77,255,.15);
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+    cursor: pointer;
+    border-radius: 3px;
+    letter-spacing: .08em;
+    transition: all .15s;
+  }
+  .speed-btn:hover { background: rgba(124,77,255,.3); }
+  .speed-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ── Grid layout ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: auto;
+    gap: 12px;
+    padding: 20px 24px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top:0; left:0; right:0; height:1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: .25;
+  }
+
+  .card-label {
+    font-family: var(--mono);
+    font-size: .62rem;
+    letter-spacing: .14em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .card-value {
+    font-family: var(--mono);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .card-value.green  { color: var(--green);  text-shadow: 0 0 20px rgba(0,230,118,.4); }
+  .card-value.red    { color: var(--red);    text-shadow: 0 0 20px rgba(255,23,68,.4);  }
+  .card-value.yellow { color: var(--yellow); text-shadow: 0 0 20px rgba(255,234,0,.4);  }
+  .card-sub {
+    font-size: .75rem;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* Status badge */
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .1em;
+  }
+  .status-badge.online  { background: rgba(0,230,118,.12); border: 1px solid rgba(0,230,118,.3); color: var(--green); }
+  .status-badge.offline { background: rgba(255,23,68,.12);  border: 1px solid rgba(255,23,68,.3);  color: var(--red);   }
+
+  /* Full width / span cards */
+  .col-span-2 { grid-column: span 2; }
+  .col-span-3 { grid-column: span 3; }
+  .col-span-4 { grid-column: span 4; }
+
+  /* ── Chart containers ── */
+  .chart-wrap {
+    position: relative;
+    height: 200px;
+  }
+  .chart-wrap.tall { height: 260px; }
+
+  .chart-title {
+    font-family: var(--mono);
+    font-size: .65rem;
+    letter-spacing: .12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  /* ── Mini stat row ── */
+  .stat-row {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin-top: 14px;
+  }
+  .stat-item {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .stat-item .lbl { font-size: .65rem; color: var(--muted); font-family: var(--mono); letter-spacing:.08em; }
+  .stat-item .val { font-size: .9rem; font-family: var(--mono); color: var(--text); }
+
+  /* ── Alerts ── */
+  .alerts-list {
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .alerts-list::-webkit-scrollbar { width: 4px; }
+  .alerts-list::-webkit-scrollbar-track { background: var(--border); }
+  .alerts-list::-webkit-scrollbar-thumb { background: var(--muted); border-radius:2px; }
+
+  .alert-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 3px;
+    font-size: .78rem;
+    border-left: 2px solid transparent;
+    background: var(--surface2);
+  }
+  .alert-item.error   { border-color: var(--red);    color: #ff8a80; }
+  .alert-item.warning { border-color: var(--orange);  color: #ffab40; }
+  .alert-item.success { border-color: var(--green);   color: #69f0ae; }
+  .alert-item.info    { border-color: var(--accent);  color: #80d8ff; }
+  .alert-ts { font-family: var(--mono); font-size:.62rem; color: var(--muted); white-space:nowrap; }
+
+  /* ── Per-host table ── */
+  .host-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .host-table th {
+    font-family: var(--mono);
+    font-size: .6rem;
+    letter-spacing: .1em;
+    color: var(--muted);
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+  .host-table td {
+    font-family: var(--mono);
+    font-size: .78rem;
+    padding: 7px 8px;
+    border-bottom: 1px solid rgba(30,36,48,.5);
+  }
+  .host-table tr:last-child td { border-bottom: none; }
+  .pill {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 2px;
+    font-size: .65rem;
+    letter-spacing: .06em;
+  }
+  .pill.ok   { background: rgba(0,230,118,.12); color: var(--green);  }
+  .pill.fail { background: rgba(255,23,68,.12);  color: var(--red);    }
+  .pill.slow { background: rgba(255,234,0,.12);  color: var(--yellow); }
+
+  /* ── Speed results ── */
+  .speed-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .speed-item { text-align: center; }
+  .speed-item .s-val {
+    font-family: var(--mono);
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+  .speed-item .s-val.dl { color: var(--accent);  }
+  .speed-item .s-val.ul { color: var(--accent2); }
+  .speed-item .s-val.sp { color: var(--green);   }
+  .speed-item .s-lbl { font-size: .65rem; color: var(--muted); margin-top: 3px; font-family: var(--mono); letter-spacing:.1em; }
+
+  /* ── Trend indicator ── */
+  .trend-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: .7rem;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    margin-top: 6px;
+  }
+  .trend-tag.improving  { background: rgba(0,230,118,.1); color: var(--green);  }
+  .trend-tag.degrading  { background: rgba(255,23,68,.1);  color: var(--red);    }
+  .trend-tag.stable     { background: rgba(74,85,104,.2);  color: var(--muted);  }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: .62rem;
+    color: var(--muted);
+    letter-spacing: .1em;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Loading overlay ── */
+  #loading {
+    position: fixed; inset:0;
+    background: var(--bg);
+    display: flex; align-items:center; justify-content:center;
+    z-index: 9999;
+    flex-direction: column; gap: 14px;
+  }
+  #loading .l-logo {
+    font-family: var(--mono);
+    color: var(--accent);
+    font-size: 1.2rem;
+    letter-spacing: .2em;
+  }
+  #loading .l-bar {
+    width: 200px; height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  #loading .l-fill {
+    height: 100%;
+    background: var(--accent);
+    animation: load 1.2s ease-in-out forwards;
+  }
+  @keyframes load { from{width:0} to{width:100%} }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="l-logo">NETWATCH</div>
+  <div class="l-bar"><div class="l-fill"></div></div>
+  <div style="font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:.1em;">INITIALIZING…</div>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot" id="statusDot"></div>
+    NETWATCH
+  </div>
+  <div class="header-right">
+    <div class="time-range-btns">
+      <button class="tr-btn active" data-minutes="30">30M</button>
+      <button class="tr-btn" data-minutes="60">1H</button>
+      <button class="tr-btn" data-minutes="180">3H</button>
+      <button class="tr-btn" data-minutes="360">6H</button>
+      <button class="tr-btn" data-minutes="1440">24H</button>
+    </div>
+    <button class="speed-btn" id="speedBtn" onclick="triggerSpeedTest()">▶ RUN SPEED TEST</button>
+  </div>
+</header>
+
+<!-- ── Main Grid ── -->
+<div class="grid">
+
+  <!-- Row 1: 4 stat cards -->
+  <div class="card">
+    <div class="card-label">Connection Status</div>
+    <div id="statusBadge" class="status-badge online"><span>●</span> ONLINE</div>
+    <div class="card-sub" id="lastCheck">Checking…</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Current Latency</div>
+    <div class="card-value" id="currentPing">—</div>
+    <div class="card-sub">ms avg across targets</div>
+    <div id="trendTag" class="trend-tag stable">— STABLE</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Packet Loss</div>
+    <div class="card-value" id="currentLoss">—</div>
+    <div class="card-sub">% in current window</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Uptime</div>
+    <div class="card-value green" id="uptimePct">—</div>
+    <div class="card-sub" id="uptimeWindow">in selected window</div>
+  </div>
+
+  <!-- Row 2: Latency chart (big) + alerts -->
+  <div class="card col-span-3">
+    <div class="chart-title">Latency Over Time (ms)</div>
+    <div class="chart-wrap tall">
+      <canvas id="latencyChart"></canvas>
+    </div>
+    <div class="stat-row" id="statsRow"></div>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">Events &amp; Alerts</div>
+    <div class="alerts-list" id="alertsList"></div>
+  </div>
+
+  <!-- Row 3: Loss chart + per-host table + speed -->
+  <div class="card col-span-2">
+    <div class="chart-title">Packet Loss % Over Time</div>
+    <div class="chart-wrap">
+      <canvas id="lossChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">Per-Host Status</div>
+    <table class="host-table" id="hostTable">
+      <thead><tr>
+        <th>Host</th><th>Latency</th><th>Status</th>
+      </tr></thead>
+      <tbody id="hostBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">Last Speed Test</div>
+    <div id="speedResults">
+      <div style="color:var(--muted);font-size:.8rem;font-family:var(--mono);margin-top:8px;">
+        No speed test run yet.<br>Click "Run Speed Test" above.
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: Hourly trend chart + speed history -->
+  <div class="card col-span-2">
+    <div class="chart-title">Hourly Avg Latency Trend</div>
+    <div class="chart-wrap">
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card col-span-2">
+    <div class="chart-title">Speed Test History</div>
+    <div class="chart-wrap">
+      <canvas id="speedChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  NETWATCH v1.0 — MONITORING EVERY 10s — DATA PERSISTED LOCALLY — PRESS F5 TO REFRESH
+</footer>
+
+<script>
+// ── Chart defaults ──────────────────────────────────────────────────────────
+const ACCENT   = '#00e5ff';
+const ACCENT2  = '#7c4dff';
+const GREEN    = '#00e676';
+const RED      = '#ff1744';
+const YELLOW   = '#ffea00';
+const ORANGE   = '#ff6d00';
+const GRID_CLR = 'rgba(30,36,48,0.8)';
+const MUTED    = '#4a5568';
+
+Chart.defaults.color = '#4a5568';
+Chart.defaults.font.family = "'Space Mono', monospace";
+Chart.defaults.font.size = 10;
+
+function commonOptions(yLabel = '') {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 300 },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#111318',
+        borderColor: '#1e2430',
+        borderWidth: 1,
+        titleColor: '#00e5ff',
+        bodyColor: '#e2e8f0',
+        padding: 10,
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: GRID_CLR },
+        ticks: { maxTicksLimit: 8, maxRotation: 0 }
+      },
+      y: {
+        grid: { color: GRID_CLR },
+        title: { display: !!yLabel, text: yLabel, color: MUTED, font:{size:9} }
+      }
+    }
+  };
+}
+
+// ── Init charts ─────────────────────────────────────────────────────────────
+const latencyChart = new Chart(
+  document.getElementById('latencyChart').getContext('2d'),
+  {
+    type: 'line',
+    data: { labels: [], datasets: [
+      {
+        label: 'Avg Latency',
+        data: [], borderColor: ACCENT,
+        backgroundColor: 'rgba(0,229,255,.06)',
+        borderWidth: 1.5, pointRadius: 0,
+        fill: true, tension: 0.3,
+      },
+      {
+        label: 'Google DNS',
+        data: [], borderColor: GREEN,
+        borderWidth: 1, pointRadius: 0,
+        borderDash: [3,3], fill:false, tension: 0.3,
+      },
+      {
+        label: 'Cloudflare',
+        data: [], borderColor: ACCENT2,
+        borderWidth: 1, pointRadius: 0,
+        borderDash: [3,3], fill:false, tension: 0.3,
+      },
+      {
+        label: 'OpenDNS',
+        data: [], borderColor: ORANGE,
+        borderWidth: 1, pointRadius: 0,
+        borderDash: [3,3], fill:false, tension: 0.3,
+      },
+    ]},
+    options: { ...commonOptions('ms'),
+      plugins: {
+        ...commonOptions('ms').plugins,
+        legend: { display: true, labels:{ color: MUTED, boxWidth:20, font:{size:9} } }
+      }
+    }
+  }
+);
+
+const lossChart = new Chart(
+  document.getElementById('lossChart').getContext('2d'),
+  {
+    type: 'bar',
+    data: { labels: [], datasets: [{
+      label: 'Loss %',
+      data: [],
+      backgroundColor: (ctx) => {
+        const v = ctx.raw;
+        if (v > 50) return 'rgba(255,23,68,.7)';
+        if (v > 10) return 'rgba(255,109,0,.6)';
+        return 'rgba(0,229,255,.4)';
+      },
+      borderRadius: 2,
+    }]},
+    options: { ...commonOptions('%') }
+  }
+);
+
+const trendChart = new Chart(
+  document.getElementById('trendChart').getContext('2d'),
+  {
+    type: 'line',
+    data: { labels: [], datasets: [
+      {
+        label: 'Avg ms',
+        data: [], borderColor: ACCENT,
+        backgroundColor: 'rgba(0,229,255,.08)',
+        borderWidth: 2, pointRadius: 2,
+        fill: true, tension: 0.4,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Uptime %',
+        data: [], borderColor: GREEN,
+        borderWidth: 1.5, pointRadius: 0,
+        fill: false, tension: 0.4,
+        borderDash: [4,3],
+        yAxisID: 'y2',
+      }
+    ]},
+    options: {
+      ...commonOptions(),
+      scales: {
+        x: { grid:{ color: GRID_CLR }, ticks:{ maxTicksLimit:8 } },
+        y: { grid:{ color: GRID_CLR }, title:{ display:true, text:'ms', color:MUTED } },
+        y2: {
+          position:'right',
+          grid: { display: false },
+          min: 0, max: 100,
+          title: { display:true, text:'uptime %', color:MUTED }
+        }
+      },
+      plugins: {
+        ...commonOptions().plugins,
+        legend: { display: true, labels:{ color:MUTED, boxWidth:16, font:{size:9} } }
+      }
+    }
+  }
+);
+
+const speedChart = new Chart(
+  document.getElementById('speedChart').getContext('2d'),
+  {
+    type: 'line',
+    data: { labels: [], datasets: [
+      {
+        label: 'Download (Mbps)',
+        data: [], borderColor: ACCENT,
+        backgroundColor: 'rgba(0,229,255,.07)',
+        borderWidth: 2, pointRadius: 3,
+        fill: true, tension: 0.3,
+      },
+      {
+        label: 'Upload (Mbps)',
+        data: [], borderColor: ACCENT2,
+        borderWidth: 2, pointRadius: 3,
+        fill: false, tension: 0.3,
+      }
+    ]},
+    options: {
+      ...commonOptions('Mbps'),
+      plugins: {
+        ...commonOptions('Mbps').plugins,
+        legend: { display: true, labels:{ color:MUTED, boxWidth:20, font:{size:9} } }
+      }
+    }
+  }
+);
+
+// ── State ───────────────────────────────────────────────────────────────────
+let currentMinutes = 30;
+
+// ── Time formatting ──────────────────────────────────────────────────────────
+function fmtTime(iso) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+function fmtDateTime(iso) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+}
+function timeAgo(iso) {
+  const secs = (Date.now() - new Date(iso)) / 1000;
+  if (secs < 60)  return `${Math.floor(secs)}s ago`;
+  if (secs < 3600) return `${Math.floor(secs/60)}m ago`;
+  return `${Math.floor(secs/3600)}h ago`;
+}
+
+// ── Update status card ───────────────────────────────────────────────────────
+function updateStatus(s) {
+  const dot   = document.getElementById('statusDot');
+  const badge = document.getElementById('statusBadge');
+  const check = document.getElementById('lastCheck');
+
+  if (s.online) {
+    dot.className   = 'logo-dot';
+    badge.className = 'status-badge online';
+    badge.innerHTML = '<span>●</span> ONLINE';
+  } else {
+    dot.className   = 'logo-dot offline';
+    badge.className = 'status-badge offline';
+    badge.innerHTML = '<span>●</span> OFFLINE';
+  }
+
+  if (s.last_check) {
+    check.textContent = 'Last check: ' + timeAgo(s.last_check);
+  }
+
+  // Current ping
+  const pingEl = document.getElementById('currentPing');
+  if (s.last_ping_ms !== null && s.last_ping_ms !== undefined) {
+    pingEl.textContent = s.last_ping_ms;
+    pingEl.className = 'card-value' +
+      (s.last_ping_ms > 150 ? ' red' : s.last_ping_ms > 80 ? ' yellow' : '');
+  } else {
+    pingEl.textContent = 'FAIL';
+    pingEl.className = 'card-value red';
+  }
+
+  // Speed test button
+  const btn = document.getElementById('speedBtn');
+  btn.disabled = s.speed_test_running;
+  btn.textContent = s.speed_test_running ? '⟳ RUNNING…' : '▶ RUN SPEED TEST';
+
+  // Last speed
+  if (s.last_speed) updateSpeedDisplay(s.last_speed);
+}
+
+function updateSpeedDisplay(sp) {
+  document.getElementById('speedResults').innerHTML = `
+    <div class="speed-grid">
+      <div class="speed-item">
+        <div class="s-val dl">${sp.download}</div>
+        <div class="s-lbl">↓ DOWNLOAD Mbps</div>
+      </div>
+      <div class="speed-item">
+        <div class="s-val ul">${sp.upload}</div>
+        <div class="s-lbl">↑ UPLOAD Mbps</div>
+      </div>
+      <div class="speed-item">
+        <div class="s-val sp">${sp.ping}</div>
+        <div class="s-lbl">◎ PING ms</div>
+      </div>
+    </div>
+    <div style="font-size:.65rem;color:var(--muted);margin-top:10px;font-family:var(--mono);">
+      ${sp.server} · ${new Date(sp.ts).toLocaleString()}
+    </div>
+  `;
+}
+
+// ── Update ping chart + stats ────────────────────────────────────────────────
+function updatePingData(history) {
+  const labels = history.map(r => fmtTime(r.ts));
+  const avg    = history.map(r => r.avg_ms);
+  const g      = history.map(r => r.targets['Google DNS']   ?? null);
+  const c      = history.map(r => r.targets['Cloudflare']   ?? null);
+  const o      = history.map(r => r.targets['OpenDNS']      ?? null);
+  const loss   = history.map(r => r.loss_pct);
+
+  latencyChart.data.labels            = labels;
+  latencyChart.data.datasets[0].data  = avg;
+  latencyChart.data.datasets[1].data  = g;
+  latencyChart.data.datasets[2].data  = c;
+  latencyChart.data.datasets[3].data  = o;
+  latencyChart.update('none');
+
+  lossChart.data.labels               = labels;
+  lossChart.data.datasets[0].data     = loss;
+  lossChart.update('none');
+
+  // Avg loss display
+  const avgLoss = loss.length ? (loss.reduce((a,b)=>a+b,0)/loss.length) : 0;
+  const lossEl  = document.getElementById('currentLoss');
+  lossEl.textContent = avgLoss.toFixed(1) + '%';
+  lossEl.className   = 'card-value' +
+    (avgLoss > 10 ? ' red' : avgLoss > 0 ? ' yellow' : ' green');
+
+  // Trend detection
+  if (avg.length >= 10) {
+    const recent = avg.filter(v=>v!=null).slice(-10);
+    const older  = avg.filter(v=>v!=null).slice(-20, -10);
+    if (older.length) {
+      const r_avg = recent.reduce((a,b)=>a+b,0)/recent.length;
+      const o_avg = older.reduce((a,b)=>a+b,0)/older.length;
+      const diff  = r_avg - o_avg;
+      const tag   = document.getElementById('trendTag');
+      if (diff > 15) {
+        tag.className = 'trend-tag degrading';
+        tag.textContent = '▲ DEGRADING (+' + diff.toFixed(0) + 'ms)';
+      } else if (diff < -15) {
+        tag.className = 'trend-tag improving';
+        tag.textContent = '▼ IMPROVING (' + diff.toFixed(0) + 'ms)';
+      } else {
+        tag.className = 'trend-tag stable';
+        tag.textContent = '— STABLE';
+      }
+    }
+  }
+
+  // Host table (from latest record)
+  if (history.length) {
+    const latest = history[history.length - 1];
+    const tbody = document.getElementById('hostBody');
+    tbody.innerHTML = '';
+    for (const [name, ms] of Object.entries(latest.targets)) {
+      const tr = document.createElement('tr');
+      let pill, msText;
+      if (ms === null) {
+        pill   = '<span class="pill fail">FAIL</span>';
+        msText = '—';
+      } else if (ms > 150) {
+        pill   = '<span class="pill slow">SLOW</span>';
+        msText = ms + 'ms';
+      } else {
+        pill   = '<span class="pill ok">OK</span>';
+        msText = ms + 'ms';
+      }
+      tr.innerHTML = `<td>${name}</td><td>${msText}</td><td>${pill}</td>`;
+      tbody.appendChild(tr);
+    }
+  }
+}
+
+// ── Update stats bar ─────────────────────────────────────────────────────────
+function updateStats(s) {
+  const uptimeEl = document.getElementById('uptimePct');
+  if (s.online_pct !== undefined) {
+    uptimeEl.textContent = s.online_pct + '%';
+    uptimeEl.className   = 'card-value ' +
+      (s.online_pct < 95 ? 'red' : s.online_pct < 99 ? 'yellow' : 'green');
+  }
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-item"><div class="lbl">MIN</div><div class="val">${s.min_latency ?? '—'}ms</div></div>
+    <div class="stat-item"><div class="lbl">AVG</div><div class="val">${s.avg_latency ?? '—'}ms</div></div>
+    <div class="stat-item"><div class="lbl">MEDIAN</div><div class="val">${s.median_latency ?? '—'}ms</div></div>
+    <div class="stat-item"><div class="lbl">MAX</div><div class="val">${s.max_latency ?? '—'}ms</div></div>
+    <div class="stat-item"><div class="lbl">JITTER</div><div class="val">±${s.stdev_latency ?? '—'}ms</div></div>
+    <div class="stat-item"><div class="lbl">SAMPLES</div><div class="val">${s.samples ?? '—'}</div></div>
+    <div class="stat-item"><div class="lbl">OUTAGES</div><div class="val">${s.outage_count ?? '—'}</div></div>
+  `;
+}
+
+// ── Update alerts ─────────────────────────────────────────────────────────────
+function updateAlerts(alerts) {
+  const list = document.getElementById('alertsList');
+  list.innerHTML = '';
+  if (!alerts.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:.75rem;font-family:var(--mono);padding:8px;">No events yet.</div>';
+    return;
+  }
+  alerts.forEach(a => {
+    const div = document.createElement('div');
+    div.className = `alert-item ${a.level}`;
+    div.innerHTML = `
+      <div style="flex:1">${a.message}</div>
+      <div class="alert-ts">${timeAgo(a.ts)}</div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+// ── Update trend chart ────────────────────────────────────────────────────────
+function updateTrends(trends) {
+  const labels   = trends.map(t => t.hour.slice(11));   // "14" → time only
+  const avgMs    = trends.map(t => t.avg_ms);
+  const uptime   = trends.map(t => t.uptime_pct);
+
+  trendChart.data.labels               = labels;
+  trendChart.data.datasets[0].data     = avgMs;
+  trendChart.data.datasets[1].data     = uptime;
+  trendChart.update('none');
+}
+
+// ── Update speed history chart ────────────────────────────────────────────────
+function updateSpeedChart(history) {
+  if (!history.length) return;
+  const labels = history.map(s => fmtDateTime(s.ts));
+  const dl     = history.map(s => s.download);
+  const ul     = history.map(s => s.upload);
+
+  speedChart.data.labels               = labels;
+  speedChart.data.datasets[0].data     = dl;
+  speedChart.data.datasets[1].data     = ul;
+  speedChart.update('none');
+}
+
+// ── Fetch all data ────────────────────────────────────────────────────────────
+async function fetchAll() {
+  try {
+    const [status, history, stats, alerts, trends, speed] = await Promise.all([
+      fetch('/api/status').then(r=>r.json()),
+      fetch(`/api/ping_history?minutes=${currentMinutes}`).then(r=>r.json()),
+      fetch(`/api/stats?minutes=${currentMinutes}`).then(r=>r.json()),
+      fetch('/api/alerts?limit=25').then(r=>r.json()),
+      fetch('/api/trends').then(r=>r.json()),
+      fetch('/api/speed_history').then(r=>r.json()),
+    ]);
+    updateStatus(status);
+    updatePingData(history);
+    if (!status.error) updateStats(stats);
+    updateAlerts(alerts);
+    updateTrends(trends);
+    updateSpeedChart(speed);
+  } catch(e) {
+    console.error('Fetch error:', e);
+  }
+}
+
+// ── Trigger speed test ────────────────────────────────────────────────────────
+async function triggerSpeedTest() {
+  document.getElementById('speedBtn').disabled = true;
+  await fetch('/api/speedtest/run', { method:'POST' });
+}
+
+// ── Time range buttons ────────────────────────────────────────────────────────
+document.querySelectorAll('.tr-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tr-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMinutes = parseInt(btn.dataset.minutes);
+    fetchAll();
+  });
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    document.getElementById('loading').style.display = 'none';
+    fetchAll();
+    setInterval(fetchAll, 5000);   // Refresh every 5 seconds
+  }, 1400);
+});
+</script>
+</body>
+</html>

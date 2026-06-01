@@ -1,0 +1,17 @@
+[Unit]
+Description=Glances web/REST server (system sensors for Home Assistant)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mtellier
+Group=mtellier
+# -w web/REST server, bind all interfaces, 10s refresh, basic-auth password
+# (username defaults to "glances"; password read from ~/.config/glances/glances.pwd)
+ExecStart=/usr/bin/glances -w -p 61208 -B 0.0.0.0 -t 10 --password
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
