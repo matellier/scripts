@@ -1,0 +1,358 @@
+title: Indoor Sensors
+views:
+  - title: Indoor Sensors
+    path: indoor-sensors
+    icon: mdi:thermometer
+    type: sections
+    max_columns: 3
+    sections:
+      # ── Master Bedroom (694C) ─────────────────────
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: heading
+                heading: Master Bedroom
+                icon: mdi:bed-king
+              - type: horizontal-stack
+                cards:
+                  - type: gauge
+                    entity: sensor.master_bedroom_sensor_temperature
+                    name: Temp
+                    unit: °F
+                    needle: true
+                    min: 60
+                    max: 90
+                    severity:
+                      green: 60
+                      yellow: 74
+                      red: 78
+                  - type: gauge
+                    entity: sensor.master_bedroom_sensor_humidity
+                    name: Humidity
+                    unit: "%"
+                    needle: true
+                    min: 0
+                    max: 100
+                    severity:
+                      green: 30
+                      yellow: 50
+                      red: 60
+              - type: entities
+                title: Master Bedroom
+                show_header_toggle: false
+                entities:
+                  - entity: sensor.master_bedroom_sensor_temperature
+                    name: Temperature
+                  - entity: sensor.master_bedroom_sensor_humidity
+                    name: Humidity
+                  - entity: sensor.master_bedroom_sensor_battery
+                    name: Battery
+
+      # ── Guest1 Bedroom (4C33) ─────────────────────
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: heading
+                heading: Guest1 Bedroom
+                icon: mdi:bed
+              - type: horizontal-stack
+                cards:
+                  - type: gauge
+                    entity: sensor.meter_4c33_temperature
+                    name: Temp
+                    unit: °F
+                    needle: true
+                    min: 60
+                    max: 90
+                    severity:
+                      green: 60
+                      yellow: 74
+                      red: 78
+                  - type: gauge
+                    entity: sensor.meter_4c33_humidity
+                    name: Humidity
+                    unit: "%"
+                    needle: true
+                    min: 0
+                    max: 100
+                    severity:
+                      green: 30
+                      yellow: 50
+                      red: 60
+              - type: entities
+                title: Guest1 Bedroom
+                show_header_toggle: false
+                entities:
+                  - entity: sensor.meter_4c33_temperature
+                    name: Temperature
+                  - entity: sensor.meter_4c33_humidity
+                    name: Humidity
+                  - entity: sensor.meter_4c33_battery
+                    name: Battery
+
+      # ── Guest2 Bedroom (SNZB-02D) ─────────────────
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: heading
+                heading: Guest2 Bedroom
+                icon: mdi:bed
+              - type: horizontal-stack
+                cards:
+                  - type: gauge
+                    entity: sensor.0xcc36bbfffe807e00_temperature
+                    name: Temp
+                    unit: °F
+                    needle: true
+                    min: 60
+                    max: 90
+                    severity:
+                      green: 60
+                      yellow: 74
+                      red: 78
+                  - type: gauge
+                    entity: sensor.0xcc36bbfffe807e00_humidity
+                    name: Humidity
+                    unit: "%"
+                    needle: true
+                    min: 0
+                    max: 100
+                    severity:
+                      green: 30
+                      yellow: 50
+                      red: 60
+              - type: entities
+                title: Guest2 Bedroom
+                show_header_toggle: false
+                entities:
+                  - entity: sensor.0xcc36bbfffe807e00_temperature
+                    name: Temperature
+                  - entity: sensor.0xcc36bbfffe807e00_humidity
+                    name: Humidity
+                  - entity: sensor.0xcc36bbfffe807e00_battery
+                    name: Battery
+
+      # ── Guest3 Bedroom (SNZB-02D) ─────────────────
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: heading
+                heading: Guest3 Bedroom
+                icon: mdi:bed
+              - type: horizontal-stack
+                cards:
+                  - type: gauge
+                    entity: sensor.0xcc36bbfffe7e8161_temperature
+                    name: Temp
+                    unit: °F
+                    needle: true
+                    min: 60
+                    max: 90
+                    severity:
+                      green: 60
+                      yellow: 74
+                      red: 78
+                  - type: gauge
+                    entity: sensor.0xcc36bbfffe7e8161_humidity
+                    name: Humidity
+                    unit: "%"
+                    needle: true
+                    min: 0
+                    max: 100
+                    severity:
+                      green: 30
+                      yellow: 50
+                      red: 60
+              - type: entities
+                title: Guest3 Bedroom
+                show_header_toggle: false
+                entities:
+                  - entity: sensor.0xcc36bbfffe7e8161_temperature
+                    name: Temperature
+                  - entity: sensor.0xcc36bbfffe7e8161_humidity
+                    name: Humidity
+                  - entity: sensor.0xcc36bbfffe7e8161_battery
+                    name: Battery
+
+      # ── Office (BF20) ─────────────────────────────
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: heading
+                heading: Office
+                icon: mdi:desk
+              - type: horizontal-stack
+                cards:
+                  - type: gauge
+                    entity: sensor.office_sensor_temperature
+                    name: Temp
+                    unit: °F
+                    needle: true
+                    min: 60
+                    max: 90
+                    severity:
+                      green: 60
+                      yellow: 74
+                      red: 78
+                  - type: gauge
+                    entity: sensor.office_sensor_humidity
+                    name: Humidity
+                    unit: "%"
+                    needle: true
+                    min: 0
+                    max: 100
+                    severity:
+                      green: 30
+                      yellow: 50
+                      red: 60
+              - type: entities
+                title: Office
+                show_header_toggle: false
+                entities:
+                  - entity: sensor.office_sensor_temperature
+                    name: Temperature
+                  - entity: sensor.office_sensor_humidity
+                    name: Humidity
+                  - entity: sensor.office_sensor_battery
+                    name: Battery
+
+      # ── Attic (SNZB-02D) ──────────────────────────
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: heading
+                heading: Attic
+                icon: mdi:home-roof
+              - type: horizontal-stack
+                cards:
+                  - type: gauge
+                    entity: sensor.0xcc36bbfffe811ff0_temperature
+                    name: Temp
+                    unit: °F
+                    needle: true
+                    min: 60
+                    max: 120
+                    severity:
+                      green: 60
+                      yellow: 85
+                      red: 100
+                  - type: gauge
+                    entity: sensor.0xcc36bbfffe811ff0_humidity
+                    name: Humidity
+                    unit: "%"
+                    needle: true
+                    min: 0
+                    max: 100
+                    severity:
+                      green: 30
+                      yellow: 50
+                      red: 60
+              - type: entities
+                title: Attic
+                show_header_toggle: false
+                entities:
+                  - entity: sensor.0xcc36bbfffe811ff0_temperature
+                    name: Temperature
+                  - entity: sensor.0xcc36bbfffe811ff0_humidity
+                    name: Humidity
+                  - entity: sensor.0xcc36bbfffe811ff0_battery
+                    name: Battery
+
+      # ── Temperature comparison (recent history) ───
+      - type: grid
+        column_span: 3
+        cards:
+          - type: heading
+            heading: Temperature — last 24h
+            heading_style: subtitle
+            icon: mdi:chart-line
+          - type: history-graph
+            hours_to_show: 24
+            entities:
+              - entity: sensor.master_bedroom_sensor_temperature
+                name: Master Bedroom
+              - entity: sensor.meter_4c33_temperature
+                name: Guest1 Bedroom
+              - entity: sensor.0xcc36bbfffe807e00_temperature
+                name: Guest2 Bedroom
+              - entity: sensor.0xcc36bbfffe7e8161_temperature
+                name: Guest3 Bedroom
+              - entity: sensor.office_sensor_temperature
+                name: Office
+              - entity: sensor.0xcc36bbfffe811ff0_temperature
+                name: Attic
+
+      # ── Humidity comparison (recent history) ──────
+      - type: grid
+        column_span: 3
+        cards:
+          - type: heading
+            heading: Humidity — last 24h
+            heading_style: subtitle
+            icon: mdi:water-percent
+          - type: history-graph
+            hours_to_show: 24
+            entities:
+              - entity: sensor.master_bedroom_sensor_humidity
+                name: Master Bedroom
+              - entity: sensor.meter_4c33_humidity
+                name: Guest1 Bedroom
+              - entity: sensor.0xcc36bbfffe807e00_humidity
+                name: Guest2 Bedroom
+              - entity: sensor.0xcc36bbfffe7e8161_humidity
+                name: Guest3 Bedroom
+              - entity: sensor.office_sensor_humidity
+                name: Office
+              - entity: sensor.0xcc36bbfffe811ff0_humidity
+                name: Attic
+
+      # ── Long-term stats (for diagnosing the heat) ─
+      - type: grid
+        column_span: 3
+        cards:
+          - type: heading
+            heading: Temperature trend — 7 days (min / mean / max)
+            heading_style: subtitle
+            icon: mdi:chart-bell-curve
+          - type: statistics-graph
+            chart_type: line
+            period: hour
+            days_to_show: 7
+            stat_types:
+              - min
+              - mean
+              - max
+            entities:
+              - sensor.master_bedroom_sensor_temperature
+              - sensor.meter_4c33_temperature
+              - sensor.0xcc36bbfffe807e00_temperature
+              - sensor.0xcc36bbfffe7e8161_temperature
+              - sensor.office_sensor_temperature
+              - sensor.0xcc36bbfffe811ff0_temperature
+
+      # ── Overnight view (bedrooms, hourly mean) ────
+      # Read the 22:00–07:00 bands to compare overnight comfort.
+      - type: grid
+        column_span: 3
+        cards:
+          - type: heading
+            heading: Overnight bedroom temps — 7 days (hourly mean)
+            heading_style: subtitle
+            icon: mdi:weather-night
+          - type: statistics-graph
+            chart_type: line
+            period: hour
+            days_to_show: 7
+            stat_types:
+              - mean
+            entities:
+              - sensor.master_bedroom_sensor_temperature
+              - sensor.meter_4c33_temperature
+              - sensor.0xcc36bbfffe807e00_temperature
+              - sensor.0xcc36bbfffe7e8161_temperature
