@@ -221,6 +221,49 @@ views:
                   - entity: sensor.office_sensor_battery
                     name: Battery
 
+      # ── Bonus Room (SNZB-02D) ─────────────────────
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: heading
+                heading: Bonus Room
+                icon: mdi:sofa
+              - type: horizontal-stack
+                cards:
+                  - type: gauge
+                    entity: sensor.0xcc36bbfffe813d3b_temperature
+                    name: Temp
+                    unit: °F
+                    needle: true
+                    min: 60
+                    max: 90
+                    severity:
+                      green: 60
+                      yellow: 74
+                      red: 78
+                  - type: gauge
+                    entity: sensor.0xcc36bbfffe813d3b_humidity
+                    name: Humidity
+                    unit: "%"
+                    needle: true
+                    min: 0
+                    max: 100
+                    severity:
+                      green: 30
+                      yellow: 50
+                      red: 60
+              - type: entities
+                title: Bonus Room
+                show_header_toggle: false
+                entities:
+                  - entity: sensor.0xcc36bbfffe813d3b_temperature
+                    name: Temperature
+                  - entity: sensor.0xcc36bbfffe813d3b_humidity
+                    name: Humidity
+                  - entity: sensor.0xcc36bbfffe813d3b_battery
+                    name: Battery
+
       # ── Attic (SNZB-02D) ──────────────────────────
       - type: grid
         cards:
@@ -285,6 +328,8 @@ views:
                 name: Guest3 Bedroom
               - entity: sensor.office_sensor_temperature
                 name: Office
+              - entity: sensor.0xcc36bbfffe813d3b_temperature
+                name: Bonus Room
               - entity: sensor.0xcc36bbfffe811ff0_temperature
                 name: Attic
 
@@ -309,6 +354,8 @@ views:
                 name: Guest3 Bedroom
               - entity: sensor.office_sensor_humidity
                 name: Office
+              - entity: sensor.0xcc36bbfffe813d3b_humidity
+                name: Bonus Room
               - entity: sensor.0xcc36bbfffe811ff0_humidity
                 name: Attic
 
@@ -334,6 +381,7 @@ views:
               - sensor.0xcc36bbfffe807e00_temperature
               - sensor.0xcc36bbfffe7e8161_temperature
               - sensor.office_sensor_temperature
+              - sensor.0xcc36bbfffe813d3b_temperature
               - sensor.0xcc36bbfffe811ff0_temperature
 
       # ── Overnight view (bedrooms, hourly mean) ────

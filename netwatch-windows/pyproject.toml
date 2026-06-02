@@ -1,0 +1,9 @@
+[project]
+name = "netwatch"
+version = "0.1.0"
+requires-python = ">=3.9"
+dependencies = [
+    "flask>=3.0",
+    "reportlab>=4.0",
+    "speedtest-cli>=2.1",
+]
